@@ -2,7 +2,7 @@ const fetch = require("node-fetch");
 
 const pricingUrls = {
   fargate:
-    "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSFargate/current/ap-northeast-1/index.json",
+    "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonECS/current/index.json",
   documentdb:
     "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonDocDB/current/ap-northeast-1/index.json",
 };
@@ -19,7 +19,6 @@ module.exports = async (req, res) => {
   try {
     const response = await fetch(pricingUrls[service]);
 
-    // HTTPエラーの確認
     if (!response.ok) {
       throw new Error(
         `AWS Pricing API error: ${response.status} ${response.statusText}`
@@ -48,7 +47,6 @@ module.exports = async (req, res) => {
       let key, details;
 
       if (service === "documentdb") {
-        // databaseEngine の条件を外してシンプルに取得
         if (!attributes.instanceType) continue;
 
         key = attributes.instanceType;
@@ -60,11 +58,15 @@ module.exports = async (req, res) => {
           monthlyPrice: price !== "N/A" ? parseFloat(price) * 730 : "N/A",
         };
       } else if (service === "fargate") {
-        key = attributes.usagetype || sku;
+        // Fargateの料金のみ絞り込み（"Fargate-"を含むusagetypeに限定）
+        if (
+          !(attributes.usagetype && attributes.usagetype.includes("Fargate-"))
+        ) {
+          continue;
+        }
+
+        key = attributes.usagetype;
         details = {
-          vcpu: attributes.vcpu || "N/A",
-          memory: attributes.memory || "N/A",
-          operatingSystem: attributes.operatingSystem || "N/A",
           description: attributes.description || "N/A",
           monthlyPrice: price !== "N/A" ? parseFloat(price) * 730 : "N/A",
         };
