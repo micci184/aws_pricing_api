@@ -18,6 +18,14 @@ module.exports = async (req, res) => {
 
   try {
     const response = await fetch(pricingUrls[service]);
+
+    // HTTPエラーの確認
+    if (!response.ok) {
+      throw new Error(
+        `AWS Pricing API error: ${response.status} ${response.statusText}`
+      );
+    }
+
     const data = await response.json();
 
     const products = data.products;
@@ -40,11 +48,8 @@ module.exports = async (req, res) => {
       let key, details;
 
       if (service === "documentdb") {
-        if (
-          !attributes.instanceType ||
-          attributes.databaseEngine !== "DocumentDB"
-        )
-          continue;
+        // databaseEngine の条件を外してシンプルに取得
+        if (!attributes.instanceType) continue;
 
         key = attributes.instanceType;
         details = {
