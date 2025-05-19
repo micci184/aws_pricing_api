@@ -1,23 +1,11 @@
 const fetch = require("node-fetch");
 
-const pricingUrls = {
-  fargate:
-    "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonECS/current/index.json",
-  documentdb:
-    "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonDocDB/current/ap-northeast-1/index.json",
-};
+const documentDbUrl =
+  "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonDocDB/current/ap-northeast-1/index.json";
 
 module.exports = async (req, res) => {
-  const { service } = req.query;
-
-  if (!service || !pricingUrls[service]) {
-    return res
-      .status(400)
-      .json({ error: "Invalid or missing service parameter" });
-  }
-
   try {
-    const response = await fetch(pricingUrls[service]);
+    const response = await fetch(documentDbUrl);
 
     if (!response.ok) {
       throw new Error(
@@ -32,9 +20,8 @@ module.exports = async (req, res) => {
 
     const filteredProducts = {};
 
-    for (let sku in products) {
-      const product = products[sku];
-      const attributes = product.attributes || {};
+    for (const sku in products) {
+      const attributes = products[sku].attributes || {};
 
       const priceData = terms[sku];
       if (!priceData) continue;
@@ -44,35 +31,24 @@ module.exports = async (req, res) => {
         ? Object.values(priceDimensions)[0].pricePerUnit.USD
         : "N/A";
 
-      let key, details;
+      if (!attributes.instanceType) continue;
 
-      if (service === "documentdb") {
-        if (!attributes.instanceType) continue;
-
-        key = attributes.instanceType;
-        details = {
-          instanceType: attributes.instanceType,
-          vcpu: attributes.vcpu || "N/A",
-          memory: attributes.memory || "N/A",
-          network: attributes.networkPerformance || "N/A",
-          monthlyPrice: price !== "N/A" ? parseFloat(price) * 730 : "N/A",
-        };
-      } else if (service === "fargate") {
-        // Fargateの料金のみ絞り込み（"Fargate-"を含むusagetypeに限定）
-        if (
-          !(attributes.usagetype && attributes.usagetype.includes("Fargate-"))
-        ) {
-          continue;
-        }
-
-        key = attributes.usagetype;
-        details = {
-          description: attributes.description || "N/A",
-          monthlyPrice: price !== "N/A" ? parseFloat(price) * 730 : "N/A",
-        };
-      }
-
-      filteredProducts[key] = details;
+      filteredProducts[sku] = {
+        servicecode: attributes.servicecode || "N/A",
+        location: attributes.location || "N/A",
+        instanceType: attributes.instanceType || "N/A",
+        vcpu: attributes.vcpu || "N/A",
+        physicalProcessor: attributes.physicalProcessor || "N/A",
+        memory: attributes.memory || "N/A",
+        databaseEngine: attributes.databaseEngine || "N/A",
+        usagetype: attributes.usagetype || "N/A",
+        instanceTypeFamily: attributes.instanceTypeFamily || "N/A",
+        normalizationSizeFactor: attributes.normalizationSizeFactor || "N/A",
+        regionCode: attributes.regionCode || "N/A",
+        servicename: attributes.servicename || "N/A",
+        volumeoptimization: attributes.volumeoptimization || "N/A",
+        monthlyPrice: price !== "N/A" ? parseFloat(price) * 730 : "N/A",
+      };
     }
 
     res.setHeader("Access-Control-Allow-Origin", "*");
