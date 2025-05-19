@@ -11,7 +11,7 @@ const pricingUrls = {
 const allowedInstanceTypes = ["m6i.", "m6g.", "t4g.", "c6i.", "r6i."];
 
 module.exports = async (req, res) => {
-  const { service } = req.query;
+  const { service, os } = req.query;
 
   if (!service || !pricingUrls[service]) {
     return res
@@ -37,10 +37,25 @@ module.exports = async (req, res) => {
             allowedInstanceTypes.some((type) =>
               product.attributes.instanceType.startsWith(type)
             ) &&
-            product.attributes.operatingSystem === "Linux" &&
             product.attributes.tenancy === "Shared" &&
             product.attributes.preInstalledSw === "NA"
           )
+        ) {
+          continue;
+        }
+
+        // OSクエリパラメータで絞り込む（Amazon Linux 2023）
+        if (
+          (os && product.attributes.operatingSystem !== "Linux") ||
+          product.attributes.operatingSystem !== "Linux"
+        ) {
+          continue;
+        }
+
+        // Amazon Linux 2023 の場合のみさらに詳細な絞り込み
+        if (
+          os === "amazon-linux-2023" &&
+          !product.attributes.usagetype.includes("AL2023")
         ) {
           continue;
         }
@@ -61,6 +76,7 @@ module.exports = async (req, res) => {
           instanceType,
           vcpu: product.attributes.vcpu,
           memory: product.attributes.memory,
+          os: product.attributes.operatingSystem,
           monthlyPrice: price !== "N/A" ? parseFloat(price) * 730 : "N/A",
         };
       } else {
@@ -87,7 +103,7 @@ module.exports = async (req, res) => {
   }
 };
 
-// Vercelランタイムを明示的に指定する
+// Node.jsランタイム指定（必須）
 module.exports.config = {
   runtime: "nodejs",
 };
