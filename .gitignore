@@ -1,0 +1,32 @@
+# dependencies
+/node_modules
+
+# logs
+logs
+*.log
+npm-debug.log*
+
+# environment variables
+.env
+.env.development.local
+.env.test.local
+.env.production.local
+.env.local
+
+# vercel build output
+.vercel
+.vercel_build_output
+.output
+
+# misc
+.DS_Store
+Thumbs.db
+
+# IDEs and editors
+.vscode
+.idea
+*.sublime-workspace
+
+# local test files
+coverage
+coverage.json
