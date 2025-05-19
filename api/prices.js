@@ -29,7 +29,6 @@ module.exports = async (req, res) => {
     for (let sku in data.products) {
       const product = data.products[sku];
 
-      // EC2のみさらに強く絞り込み
       if (service === "ec2") {
         if (
           !(
@@ -48,10 +47,7 @@ module.exports = async (req, res) => {
 
         const instanceType = product.attributes.instanceType;
 
-        // インスタンスタイプごとに1つだけ取得（重複排除）
-        if (filteredProducts[instanceType]) {
-          continue;
-        }
+        if (filteredProducts[instanceType]) continue;
 
         const priceData = terms[sku];
         if (!priceData) continue;
@@ -68,7 +64,6 @@ module.exports = async (req, res) => {
           monthlyPrice: price !== "N/A" ? parseFloat(price) * 730 : "N/A",
         };
       } else {
-        // Fargate や DocumentDB は全て取得
         const priceData = terms[sku];
         if (!priceData) continue;
 
@@ -90,4 +85,9 @@ module.exports = async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
+};
+
+// Vercelランタイムを明示的に指定する
+module.exports.config = {
+  runtime: "nodejs",
 };
